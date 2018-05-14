@@ -252,7 +252,6 @@ public class ArquillianService implements Service<ArquillianService> {
                             ServiceBuilder<ArquillianConfig> builder = serviceTarget.addService(arqConfig.getServiceName(), arqConfig)
                                     .addDependency(ArquillianService.SERVICE_NAME, ArquillianService.class, arqConfig.getArquillianService())
                                     .addDependency(parentController.getName(), DeploymentUnit.class, arqConfig.getDeploymentUnit());
-                            arqConfig.addDeps(builder, serviceController);
                             builder.setInitialMode(ServiceController.Mode.ACTIVE);
                             builder.install();
                         }

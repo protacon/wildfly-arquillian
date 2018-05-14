@@ -20,14 +20,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import org.jboss.arquillian.container.test.spi.util.ServiceLoader;
 import org.jboss.arquillian.testenricher.msc.ServiceTargetAssociation;
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.modules.Module;
 import org.jboss.msc.service.Service;
-import org.jboss.msc.service.ServiceBuilder;
-import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceController.Mode;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.StartContext;
@@ -39,10 +36,9 @@ import org.jboss.msc.value.InjectedValue;
  * The ArquillianConfig represents an Arquillian deployment.
  *
  * @author Thomas.Diesler@jboss.com
+ * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
  */
-public class ArquillianConfig implements Service<ArquillianConfig> {
-
-    private final List<ArquillianConfigServiceCustomizer> serviceCustomizers = new ArrayList<>();
+class ArquillianConfig implements Service<ArquillianConfig> {
 
     private final InjectedValue<ArquillianService> arquillianService = new InjectedValue<>();
     private final InjectedValue<DeploymentUnit> deploymentUnit = new InjectedValue<>();
@@ -56,18 +52,6 @@ public class ArquillianConfig implements Service<ArquillianConfig> {
     ArquillianConfig(Set<String> testClasses, String deploymentUnitName) {
         this.serviceName = getServiceName(deploymentUnitName);
         this.testClasses.addAll(testClasses);
-
-        for(ArquillianConfigServiceCustomizer customizer : ServiceLoader.load(ArquillianConfigServiceCustomizer.class)) {
-            serviceCustomizers.add(customizer);
-        }
-    }
-
-    ServiceBuilder<ArquillianConfig> addDeps(ServiceBuilder<ArquillianConfig> builder, ServiceController<?> depController) {
-
-        for(ArquillianConfigServiceCustomizer customizer : serviceCustomizers) {
-            customizer.customizeService(this, builder, depController);
-        }
-        return builder;
     }
 
     InjectedValue<DeploymentUnit> getDeploymentUnit() {
@@ -83,16 +67,11 @@ public class ArquillianConfig implements Service<ArquillianConfig> {
     }
 
     Class<?> loadClass(String className) throws ClassNotFoundException {
-
         if (testClasses.contains(className) == false)
             throw new ClassNotFoundException("Class '" + className + "' not found in: " + testClasses);
 
         Module module = deploymentUnit.getValue().getAttachment(Attachments.MODULE);
         Class<?> testClass = module.getClassLoader().loadClass(className);
-
-        for(ArquillianConfigServiceCustomizer customizer : serviceCustomizers) {
-            customizer.customizeLoadClass(deploymentUnit.getValue(), testClass);
-        }
 
         return testClass;
     }
@@ -129,4 +108,5 @@ public class ArquillianConfig implements Service<ArquillianConfig> {
         String sname = serviceName.getCanonicalName();
         return "ArquillianConfig[service=" + sname + ",unit=" + uname + ",tests=" + testClasses + "]";
     }
+
 }
